@@ -36,13 +36,14 @@ def send_email(from_email, to_email, subject, download_url):
     """
     msg = MIMEText(body, 'html')
     msg['Subject'] = subject
-msg['From'] = "shares@francemusic.com"
-msg['To'] = "shares@francemusic.com"
-msg['Bcc'] = to_email
+    msg['From'] = "shares@francemusic.com"
+    msg['To'] = "shares@francemusic.com"
+    msg['Bcc'] = to_email
 
-with smtplib.SMTP_SSL("smtp.hostinger.com", 465) as server:
-    server.login("shares@francemusic.com", "Om123shares!!!")
-    server.sendmail("shares@francemusic.com", [to_email, "shares@francemusic.com"], msg.as_string())
+    with smtplib.SMTP_SSL("smtp.hostinger.com", 465) as server:
+        server.login("shares@francemusic.com", "Om123shares!!!")
+        server.sendmail("shares@francemusic.com", [to_email, "shares@francemusic.com"], msg.as_string())
+, msg.as_string())
 
 
 
