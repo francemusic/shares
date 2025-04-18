@@ -1,52 +1,65 @@
-import os
-import uuid
-import zipfile
-from flask import Flask, request, send_file, jsonify, url_for
-from flask_cors import CORS
+from flask import Flask, request, render_template, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
+import os, uuid, shutil, json
 
 app = Flask(__name__)
-CORS(app)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 GB
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
-@app.route("/upload", methods=["POST"])
+METADATA_FILE = 'metadata.json'
+def load_metadata():
+    if os.path.exists(METADATA_FILE):
+        with open(METADATA_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_metadata(uid, files):
+    data = load_metadata()
+    data[uid] = {
+        "files": files,
+        "expires_in_days": 3
+    }
+    with open(METADATA_FILE, 'w') as f:
+        json.dump(data, f)
+
+@app.route("/", methods=['GET'])
+def index():
+    return render_template("index.html")
+
+@app.route("/upload", methods=['POST'])
 def upload():
-    try:
-        from_email = request.form.get("from_email")
-        to_email = request.form.get("to_email")
-        subject = request.form.get("subject")
-        files = request.files.getlist("files")
+    from_email = request.form['from_email']
+    to_email = request.form['to_email']
+    subject = request.form['subject']
+    files = request.files.getlist("files")
 
-        if not files:
-            return jsonify({"error": "No files uploaded"}), 400
+    uid = str(uuid.uuid4())
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], uid)
+    os.makedirs(upload_path, exist_ok=True)
+    filenames = []
 
-        uid = str(uuid.uuid4())
-        user_folder = os.path.join(UPLOAD_FOLDER, uid)
-        os.makedirs(user_folder, exist_ok=True)
+    for file in files:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(upload_path, filename))
+        filenames.append(filename)
 
-        for file in files:
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(user_folder, filename))
+    save_metadata(uid, filenames)
+    download_url = url_for('download', uid=uid, _external=True)
 
-        zip_path = os.path.join(UPLOAD_FOLDER, f"{uid}.zip")
-        with zipfile.ZipFile(zip_path, "w") as zipf:
-            for file in os.listdir(user_folder):
-                zipf.write(os.path.join(user_folder, file), arcname=file)
+    return {"download_url": download_url}
 
-        download_url = request.url_root.strip("/") + url_for("download", uid=uid)
-        return jsonify({"download_url": download_url})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/download/<uid>")
+@app.route("/download/<uid>", methods=['GET'])
 def download(uid):
-    zip_path = os.path.join(UPLOAD_FOLDER, f"{uid}.zip")
-    if os.path.exists(zip_path):
-        return send_file(zip_path, as_attachment=True)
-    return "File not found", 404
+    path = os.path.join(app.config['UPLOAD_FOLDER'], uid)
+    if not os.path.exists(path):
+        return "Files not found", 404
+
+    zip_path = shutil.make_archive(path, 'zip', path)
+    return send_file(zip_path, as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
