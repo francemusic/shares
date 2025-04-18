@@ -27,6 +27,22 @@ def save_metadata(uid, files):
     with open(METADATA_FILE, 'w') as f:
         json.dump(data, f)
 
+def send_email(from_email, to_email, subject, download_url):
+    body = f"""
+    <h3>{from_email} has shared files with you via FranceMusic</h3>
+    <p>You can download them using the link below:</p>
+    <a href="{download_url}">{download_url}</a>
+    <p><em>This link will expire in 3 days.</em></p>
+    """
+    msg = MIMEText(body, 'html')
+    msg['Subject'] = subject
+    msg['From'] = "shares@francemusic.com"
+    msg['To'] = to_email
+
+    with smtplib.SMTP_SSL("smtp.hostinger.com", 465) as server:
+        server.login("shares@francemusic.com", "Om123shares!!!")
+        server.send_message(msg)
+
 @app.route("/", methods=['GET'])
 def index():
     return render_template("index.html")
@@ -52,6 +68,8 @@ def upload():
 
     base_url = "https://francemusic-files.onrender.com"
     download_url = f"{base_url}/download/{uid}"
+
+    send_email(from_email, to_email, subject, download_url)
 
     return {"download_url": download_url}
 
