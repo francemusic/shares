@@ -1,11 +1,8 @@
-from flask_cors import CORS
 from flask import Flask, request, render_template, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
 import os, uuid, shutil, json
 
 app = Flask(__name__)
-CORS(app)  
-
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 GB
 
@@ -50,7 +47,9 @@ def upload():
         filenames.append(filename)
 
     save_metadata(uid, filenames)
-    download_url = url_for('download', uid=uid, _external=True)
+
+    base_url = "https://francemusic-files.onrender.com"
+    download_url = f"{base_url}/download/{uid}"
 
     return {"download_url": download_url}
 
