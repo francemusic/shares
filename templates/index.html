@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Share Files | FranceMusic</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; padding-top: 100px; }
+    form { background: white; padding: 40px; display: inline-block; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    h1 { margin-bottom: 20px; }
+    input[type="file"], input[type="email"], input[type="text"] {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    input[type="file"] { padding: 6px; }
+    button {
+      background: #222;
+      color: white;
+      padding: 10px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover { background: #444; }
+    .disclaimer { margin-top: 15px; font-size: 0.9em; color: #666; }
+  </style>
+</head>
+<body>
+  <form id="uploadForm" method="POST" enctype="multipart/form-data">
+    <h1>📤 Upload your files</h1>
+    <input type="email" name="from_email" placeholder="Your email" required><br>
+    <input type="email" name="to_email" placeholder="Recipient's email" required><br>
+    <input type="text" name="subject" placeholder="Message title or subject" required><br>
+    <input type="file" name="files" multiple required><br>
+    <button type="submit">Send Files</button>
+    <p class="disclaimer">Emails are required to notify the recipient. Max total upload: 1 GB. Files auto-delete after 3 days.</p>
+  </form>
+
+  <form id="formspreeForm" action="https://formspree.io/f/xrbpwdrn" method="POST" style="display:none;">
+    <input type="hidden" name="from" id="formspree_from">
+    <input type="hidden" name="to" id="formspree_to">
+    <input type="hidden" name="subject" id="formspree_subject">
+    <input type="hidden" name="message" id="formspree_message">
+  </form>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const res = await fetch("https://francemusic-files.onrender.com/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.download_url) {
+        document.getElementById("formspree_from").value = formData.get("from_email");
+        document.getElementById("formspree_to").value = formData.get("to_email");
+        document.getElementById("formspree_subject").value = formData.get("subject");
+        document.getElementById("formspree_message").value = `You have received files from ${formData.get("from_email")}\n\nDownload here: ${data.download_url}`;
+
+        const formspreeData = new FormData(document.getElementById("formspreeForm"));
+        await fetch("https://formspree.io/f/tu_codigo", {
+          method: "POST",
+          body: formspreeData
+        });
+
+        window.location.href = "/";
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
