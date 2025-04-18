@@ -49,29 +49,43 @@ def index():
 
 @app.route("/upload", methods=['POST'])
 def upload():
-    from_email = request.form['from_email']
-    to_email = request.form['to_email']
-    subject = request.form['subject']
-    files = request.files.getlist("files")
+    try:
+        print("[INFO] Upload request received")
+        from_email = request.form['from_email']
+        to_email = request.form['to_email']
+        subject = request.form['subject']
+        print("[INFO] Emails y asunto recibidos")
 
-    uid = str(uuid.uuid4())
-    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], uid)
-    os.makedirs(upload_path, exist_ok=True)
-    filenames = []
+        files = request.files.getlist("files")
+        print(f"[INFO] Archivos recibidos: {[file.filename for file in files]}")
 
-    for file in files:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(upload_path, filename))
-        filenames.append(filename)
+        uid = str(uuid.uuid4())
+        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], uid)
+        os.makedirs(upload_path, exist_ok=True)
+        filenames = []
 
-    save_metadata(uid, filenames)
+        for file in files:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(upload_path, filename))
+            filenames.append(filename)
+        print("[INFO] Archivos guardados exitosamente")
 
-    base_url = "https://francemusic-files.onrender.com"
-    download_url = f"{base_url}/download/{uid}"
+        save_metadata(uid, filenames)
+        print("[INFO] Metadata guardada")
 
-    send_email(from_email, to_email, subject, download_url)
+        base_url = "https://francemusic-files.onrender.com"
+        download_url = f"{base_url}/download/{uid}"
+        print(f"[INFO] Download URL generado: {download_url}")
 
-    return {"download_url": download_url}
+        send_email(from_email, to_email, subject, download_url)
+        print("[INFO] Correo enviado exitosamente")
+
+        return {"download_url": download_url}
+
+    except Exception as e:
+        print("[ERROR] Fallo en /upload:", str(e))
+        traceback.print_exc()
+        return {"error": str(e)}, 500
 
 @app.route("/download/<uid>", methods=['GET'])
 def download(uid):
@@ -85,3 +99,4 @@ def download(uid):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
