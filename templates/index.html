@@ -4,9 +4,22 @@
   <meta charset="UTF-8">
   <title>Share Files | FranceMusic</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; padding-top: 100px; }
-    form { background: white; padding: 40px; display: inline-block; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-    h1 { margin-bottom: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      text-align: center;
+      padding-top: 100px;
+    }
+    form {
+      background: white;
+      padding: 40px;
+      display: inline-block;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
     input[type="file"], input[type="email"], input[type="text"] {
       margin: 10px 0;
       padding: 10px;
@@ -25,11 +38,23 @@
       cursor: pointer;
       margin-top: 15px;
     }
-    button:hover { background: #444; }
-    .disclaimer { margin-top: 15px; font-size: 0.9em; color: #666; }
+    button:hover {
+      background: #444;
+    }
+    .disclaimer {
+      margin-top: 15px;
+      font-size: 0.9em;
+      color: #666;
+    }
+    #successMessage {
+      color: green;
+      margin-top: 20px;
+      display: none;
+    }
   </style>
 </head>
 <body>
+
   <form id="uploadForm" method="POST" enctype="multipart/form-data">
     <h1>📤 Upload your files</h1>
     <input type="email" name="from_email" placeholder="Your email" required><br>
@@ -38,8 +63,10 @@
     <input type="file" name="files" multiple required><br>
     <button type="submit">Send Files</button>
     <p class="disclaimer">Emails are required to notify the recipient. Max total upload: 1 GB. Files auto-delete after 3 days.</p>
+    <p id="successMessage">✅ Files uploaded and link sent!</p>
   </form>
 
+  <!-- Formspree hidden form -->
   <form id="formspreeForm" action="https://formspree.io/f/xrbpwdrn" method="POST" style="display:none;">
     <input type="hidden" name="from" id="formspree_from">
     <input type="hidden" name="to" id="formspree_to">
@@ -51,29 +78,42 @@
     document.getElementById("uploadForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const formData = new FormData(this);
+
+      // Subir archivos al backend en Render
       const res = await fetch("https://francemusic-files.onrender.com/upload", {
         method: "POST",
         body: formData
       });
+
       const data = await res.json();
 
       if (data.download_url) {
+        // Completar el formulario de Formspree
         document.getElementById("formspree_from").value = formData.get("from_email");
         document.getElementById("formspree_to").value = formData.get("to_email");
         document.getElementById("formspree_subject").value = formData.get("subject");
-        document.getElementById("formspree_message").value = `You have received files from ${formData.get("from_email")}\n\nDownload here: ${data.download_url}`;
+        document.getElementById("formspree_message").value = `You have received files from ${formData.get("from_email")}.\n\nDownload here: ${data.download_url}\n\nThis link will expire in 3 days.`;
 
-        const formspreeData = new FormData(document.getElementById("formspreeForm"));
+        // Enviar por Formspree
+        const fsData = new FormData(document.getElementById("formspreeForm"));
         await fetch("https://formspree.io/f/tu_codigo", {
           method: "POST",
-          body: formspreeData
+          body: fsData
         });
 
-        window.location.href = "/";
+        // Mostrar mensaje de éxito
+        document.getElementById("successMessage").style.display = "block";
+
+        // Volver a la página en 3 segundos
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 3000);
+
       } else {
-        alert("Something went wrong. Please try again.");
+        alert("❌ Something went wrong. Please try again.");
       }
     });
   </script>
+
 </body>
 </html>
