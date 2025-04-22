@@ -1,7 +1,8 @@
+from email.mime.text import MIMEText
 from flask_cors import CORS
 from flask import Flask, request, render_template, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
-import os, uuid, shutil, json, traceback
+import os, uuid, shutil, json, traceback, smtplib
 
 app = Flask(__name__)
 CORS(app)
